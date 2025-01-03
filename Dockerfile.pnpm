@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+COPY package*.json ./
+
+# Generate pnpm-lock.yaml if it doesn't exist
+RUN pnpm install --prod
+
+COPY . .
+
+EXPOSE 3000
+
+ENV NODE_ENV=production
+
+CMD ["pnpm", "start"]
