@@ -2,14 +2,25 @@ FROM oven/bun:1
 
 WORKDIR /app
 
+# Install dependencies first (including dev dependencies for build)
 COPY package*.json ./
+RUN bun install
 
-RUN bun install --production
+# Generate Prisma Client
+COPY prisma ./prisma/
+RUN bunx prisma generate
 
+# Copy source code
 COPY . .
 
+# Build TypeScript
+RUN bun run build
+
+# Clean dev dependencies
+RUN bun install --production
+
+# Expose port
 EXPOSE 3000
 
-ENV NODE_ENV=production
-
+# Start the application
 CMD ["bun", "start"]

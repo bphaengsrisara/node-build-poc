@@ -2,14 +2,25 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install dependencies first (including dev dependencies for build)
 COPY package*.json ./
+RUN npm install
 
-RUN npm install --omit=dev
+# Generate Prisma Client
+COPY prisma ./prisma/
+RUN npx prisma generate
 
+# Copy source code
 COPY . .
 
+# Build TypeScript
+RUN npm run build
+
+# Clean dev dependencies
+RUN npm prune --omit=dev
+
+# Expose port
 EXPOSE 3000
 
-ENV NODE_ENV=production
-
+# Start the application
 CMD ["npm", "start"]

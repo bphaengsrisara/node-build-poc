@@ -1,42 +1,65 @@
 #!/bin/bash
 
-echo "Building and measuring Docker images..."
-echo "======================================="
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-# Function to convert size to human readable format
-human_size() {
-    numfmt --to=iec-i --suffix=B $1
+echo -e "${BLUE}Starting comprehensive package manager benchmark...${NC}\n"
+
+# Function to measure memory usage of a container
+measure_memory() {
+    local container_name=$1
+    docker stats --no-stream --format "{{.MemUsage}}" "$container_name"
 }
 
-# Function to build and measure
-build_and_measure() {
-    local package_manager=$1
-    local dockerfile="Dockerfile.$package_manager"
-    
-    echo "Testing $package_manager..."
-    echo "-------------------------"
-    
-    # Remove existing image if it exists
-    docker rmi "node-app-$package_manager" 2>/dev/null
-    
-    # Build with time measurement
-    echo "Build time:"
-    time docker build -f $dockerfile -t "node-app-$package_manager" .
-    
-    # Get image size
-    size=$(docker image inspect "node-app-$package_manager" --format='{{.Size}}')
-    echo "Image size: $(human_size $size)"
-    echo
+# Function to measure node_modules size
+measure_node_modules_size() {
+    local container_name=$1
+    docker exec "$container_name" du -sh /app/node_modules
 }
 
-# Clean up
-docker builder prune -f
+# Function to run tests for each package manager
+run_tests() {
+    local pm=$1
+    local dockerfile="Dockerfile.$pm"
+    
+    echo -e "${GREEN}Testing $pm...${NC}"
+    
+    # Clean state
+    docker system prune -f
+    docker rmi "docker-poc-app-$pm" || true
+    
+    # Test 1: Cold cache build
+    echo "1. Cold Cache Build Test"
+    time docker build -f "$dockerfile" -t "docker-poc-app-$pm" . --no-cache
+    
+    # Test 2: Warm cache build
+    echo -e "\n2. Warm Cache Build Test"
+    time docker build -f "$dockerfile" -t "docker-poc-app-$pm" .
+    
+    # Start container for memory and size tests
+    container_name="test-$pm"
+    docker run -d --name "$container_name" "docker-poc-app-$pm"
+    
+    # Test 3: Memory Usage
+    echo -e "\n3. Memory Usage"
+    measure_memory "$container_name"
+    
+    # Test 4: node_modules size
+    echo -e "\n4. node_modules Size"
+    measure_node_modules_size "$container_name"
+    
+    # Clean up
+    docker stop "$container_name"
+    docker rm "$container_name"
+    
+    echo -e "\n----------------------------------------\n"
+}
 
-# Run benchmarks
-build_and_measure "npm"
-build_and_measure "pnpm"
-build_and_measure "bun"
+# Run tests for each package manager
+for pm in npm pnpm bun; do
+    run_tests "$pm"
+done
 
-echo "Summary of image sizes:"
-echo "----------------------"
-docker images | grep "node-app-"
+echo -e "${BLUE}Benchmark complete!${NC}"

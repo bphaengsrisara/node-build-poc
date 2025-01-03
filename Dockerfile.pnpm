@@ -5,15 +5,25 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
+# Install dependencies first (including dev dependencies for build)
 COPY package*.json ./
+RUN pnpm install
 
-# Generate pnpm-lock.yaml if it doesn't exist
-RUN pnpm install --prod
+# Generate Prisma Client
+COPY prisma ./prisma/
+RUN npx prisma generate
 
+# Copy source code
 COPY . .
 
+# Build TypeScript
+RUN pnpm build
+
+# Clean dev dependencies
+RUN pnpm prune --prod
+
+# Expose port
 EXPOSE 3000
 
-ENV NODE_ENV=production
-
+# Start the application
 CMD ["pnpm", "start"]
