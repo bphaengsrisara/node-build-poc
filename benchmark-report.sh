@@ -96,16 +96,7 @@ run_tests() {
     # Test 4: node_modules size
     local modules_size=$(measure_node_modules_size $service_name)
     echo "- node_modules Size: $modules_size" >> $REPORT_FILE
-    
-    # Extract build information
-    echo -e "\n### 5. Build Details" >> $REPORT_FILE
-    echo "#### Package Installation:" >> $REPORT_FILE
-    grep "packages installed" build_output.tmp | tail -n 1 >> $REPORT_FILE
-    
-    # Extract warnings and deprecations
-    echo -e "\n#### Warnings and Deprecations:" >> $REPORT_FILE
-    grep -i "warn" build_output.tmp | sort | uniq >> $REPORT_FILE
-    
+            
     # Clean up
     rm build_output.tmp
     docker-compose stop $service_name
