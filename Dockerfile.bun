@@ -2,8 +2,12 @@ FROM oven/bun:1
 
 WORKDIR /app
 
+# Install OpenSSL and other dependencies
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first (including dev dependencies for build)
 COPY package*.json ./
+
 RUN bun install
 
 # Generate Prisma Client

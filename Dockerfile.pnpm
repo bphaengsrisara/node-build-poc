@@ -2,11 +2,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install OpenSSL and other dependencies
+RUN apk add --no-cache openssl
+
 # Install pnpm
 RUN npm install -g pnpm
 
 # Install dependencies first (including dev dependencies for build)
 COPY package*.json ./
+
 RUN pnpm install
 
 # Generate Prisma Client

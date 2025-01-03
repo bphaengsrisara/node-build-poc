@@ -9,7 +9,6 @@ import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { errorHandler } from './middlewares/errorHandler';
 import { setupRoutes } from './routes';
-import { rateLimiter } from './middlewares/rateLimiter';
 import { setupSocketHandlers } from './socket';
 import { logger } from './utils/logger';
 
@@ -33,7 +32,6 @@ app.use(cors());
 app.use(helmet());
 app.use(compression());
 app.use(express.json());
-app.use(rateLimiter);
 
 // Setup routes
 setupRoutes(app);
