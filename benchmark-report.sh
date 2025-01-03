@@ -6,14 +6,21 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Output file
+# Create reports directory if it doesn't exist and ensure it's not ignored
 mkdir -p ./reports
-REPORT_FILE="./reports/benchmark_report_$(date +%Y%m%d_%H%M%S).md"
 
-# Initialize report
-echo "# Docker Package Manager Benchmark Report" > $REPORT_FILE
-echo "Generated on: $(date)" >> $REPORT_FILE
-echo "" >> $REPORT_FILE
+# Set timestamp for the report file
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+REPORT_FILE="./reports/benchmark_report_${TIMESTAMP}.md"
+
+# Create and set permissions for the report file
+touch "$REPORT_FILE"
+chmod 644 "$REPORT_FILE"
+
+# Initialize report file with header
+echo "# Package Manager Benchmark Report" > "$REPORT_FILE"
+echo "Generated on: $(date)" >> "$REPORT_FILE"
+echo "" >> "$REPORT_FILE"
 
 # Function to measure memory usage of a container
 measure_memory() {
@@ -110,18 +117,20 @@ run_tests() {
 extract_data() {
     local pm=$1
     local field=$2
+    local section_start="## $pm Test Results"
+    
     case $field in
         "cold")
-            grep "1\. Cold Cache Build Test" -A 2 "$REPORT_FILE" | grep -A 2 "## $pm Test Results" | grep "Duration:" | head -n1 | cut -d':' -f2 | xargs
+            sed -n "/$section_start/,/## .* Test Results/p" "$REPORT_FILE" | grep -A 1 "1\. Cold Cache Build Test" | grep "Duration:" | cut -d' ' -f3
             ;;
         "warm")
-            grep "2\. Warm Cache Build Test" -A 2 "$REPORT_FILE" | grep -A 2 "## $pm Test Results" | grep "Duration:" | head -n1 | cut -d':' -f2 | xargs
+            sed -n "/$section_start/,/## .* Test Results/p" "$REPORT_FILE" | grep -A 1 "2\. Warm Cache Build Test" | grep "Duration:" | cut -d' ' -f3
             ;;
         "memory")
-            grep "4\. Resource Usage" -A 2 "$REPORT_FILE" | grep -A 2 "## $pm Test Results" | grep "Memory Usage:" | head -n1 | cut -d':' -f2 | cut -d'/' -f1 | xargs
+            sed -n "/$section_start/,/## .* Test Results/p" "$REPORT_FILE" | grep "Memory Usage:" | cut -d' ' -f4
             ;;
         "size")
-            grep "4\. Resource Usage" -A 2 "$REPORT_FILE" | grep -A 2 "## $pm Test Results" | grep "node_modules Size:" | head -n1 | cut -d':' -f2 | cut -d$'\t' -f1 | xargs
+            sed -n "/$section_start/,/## .* Test Results/p" "$REPORT_FILE" | grep "node_modules Size:" | cut -d' ' -f4
             ;;
     esac
 }
